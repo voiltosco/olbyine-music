@@ -47,6 +47,55 @@ jobs:
           name: olbyine-music-debug-apk
           path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
+
+name: Build Olbyine Music APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install Android SDK components
+        shell: bash
+        run: |
+          set -e
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager | sort -V | tail -n 1)"
+          if [ -z "$SDKMANAGER" ]; then
+            echo "Cannot find Android SDK sdkmanager"
+            exit 1
+          fi
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" "platforms;android-36" "build-tools;36.0.0" "platform-tools"
+
+      - name: Build debug APK
+        run: |
+          chmod +x ./gradlew
+          ./gradlew :app:assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: olbyine-music-debug-apk
+          path: app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
 # Olbyine Music
 
 Olbyine Music 是一个 Android 本地与流媒体音乐播放器，使用 Kotlin、Jetpack Compose 和 AndroidX Media3 构建。
